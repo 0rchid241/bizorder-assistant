@@ -142,6 +142,7 @@ bizorder-assistant/
 ├─ frontend/
 ├─ docs/
 │  ├─ PROJECT_PLAN.md
+│  ├─ ROADMAP.md
 │  ├─ DOMAIN.md
 │  └─ DEVELOPMENT_WORKFLOW.md
 ├─ .github/
@@ -169,28 +170,16 @@ Squash Merge
 
 작은 기능이라도 가능한 한 Issue와 PR 단위로 개발 이유와 변경 내용을 남깁니다.
 
-## 1차 개발 로드맵
+## 개발 로드맵
 
-- [ ] 프로젝트 백엔드 초기 구조 구성
-- [ ] PostgreSQL 개발 환경 구성
-- [ ] Product 도메인 구현
-- [ ] PricingPolicy 도메인 구현
-- [ ] 현재 유효한 가격 정책 조회
-- [ ] Quote 계산 API v1
-- [ ] 견적 계산 단위 테스트
-- [ ] DiscountRule 도메인 구현
-- [ ] 할인 적용 및 충돌 처리
-- [ ] 견적 확정 및 snapshot
-- [ ] 접수 준비 체크리스트
-- [ ] 인증 / 권한
-- [ ] Frontend MVP
-- [ ] Docker 기반 실행환경 정리
-- [ ] CI 구성
-- [ ] README / 포트폴리오 문서 고도화
+상세 마일스톤, 완료 조건, 가중치 기반 진행률은 [마스터 로드맵](docs/ROADMAP.md)을 단일 기준으로 사용합니다.
+
+현재 단계는 **M0 기획·도메인·개발 규칙 완료 → M1 Backend·Database 개발 기반 시작**입니다.
 
 ## 문서
 
 - [프로젝트 기획서](docs/PROJECT_PLAN.md)
+- [마스터 로드맵](docs/ROADMAP.md)
 - [도메인 용어집](docs/DOMAIN.md)
 - [개발 워크플로](docs/DEVELOPMENT_WORKFLOW.md)
 
