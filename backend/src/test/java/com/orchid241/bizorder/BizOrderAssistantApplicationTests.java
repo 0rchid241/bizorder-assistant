@@ -5,6 +5,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,12 +25,26 @@ class BizOrderAssistantApplicationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private DataSource dataSource;
+
     @LocalServerPort
     private int port;
 
     @Test
     void contextLoads() {
         assertThat(context).isNotNull();
+    }
+
+    @Test
+    void databaseConnectionIsValid() throws Exception {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement();
+             var result = statement.executeQuery("SELECT 1")) {
+            assertThat(connection.getMetaData().getDatabaseProductName()).isEqualTo("PostgreSQL");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(1);
+        }
     }
 
     @Test

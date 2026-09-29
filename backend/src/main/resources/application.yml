@@ -1,9 +1,15 @@
 spring:
   application:
     name: bizorder-assistant
+  datasource:
+    url: ${DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
   autoconfigure:
     exclude:
-      # Issue #2에서 datasource 연결을 구성할 때 제거한다. 현재는 DB 없이 실행한다.
-      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
-      # 실제 인증은 후속 Issue에서 구현한다. 임시 기본 사용자/비밀번호를 생성하지 않는다.
+      # 실제 인증은 Issue #12에서 구현한다. 임시 기본 사용자/비밀번호를 생성하지 않는다.
       - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
