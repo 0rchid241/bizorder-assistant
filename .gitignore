@@ -1,0 +1,36 @@
+# Java / Gradle
+.gradle/
+build/
+**/build/
+out/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Node / React
+node_modules/
+dist/
+coverage/
+*.local
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker local volumes
+docker-data/
+postgres-data/
