@@ -152,6 +152,48 @@ bizorder-assistant/
 └─ README.md
 ```
 
+## Backend 로컬 실행 (Issue #1)
+
+JDK **21**이 필요하며 `java -version`으로 확인합니다. Spring Boot **4.1.1**, Gradle Wrapper **9.7.1**을 사용합니다.
+Gradle을 별도로 설치할 필요는 없으며 최초 실행 시 Gradle 및 의존성 다운로드를 위한 인터넷 연결이 필요합니다.
+
+Windows PowerShell:
+
+```powershell
+cd backend
+.\gradlew.bat bootRun
+```
+
+macOS / Linux:
+
+```bash
+cd backend
+./gradlew bootRun
+```
+
+기본 포트는 `8080`입니다. 서버 실행 후 별도 터미널에서 확인합니다.
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+PowerShell에서는 `Invoke-RestMethod http://localhost:8080/api/health`를 사용할 수 있습니다.
+정상 응답은 HTTP `200 OK`, JSON `{"status":"UP"}`입니다. 서버는 `Ctrl+C`로 종료합니다.
+
+테스트 실행 (`backend/`에서):
+
+```powershell
+.\gradlew.bat test
+```
+
+macOS / Linux에서는 `./gradlew test`를 실행합니다. ApplicationContext 로딩과 실제 HTTP health 응답을 검증합니다.
+실행 가능한 Jar는 `./gradlew bootJar` (Windows: `.\gradlew.bat bootJar`)로 생성합니다.
+
+현재는 **DB 없이 실행하는 초기 기반**입니다. JPA와 PostgreSQL 드라이버는 의존성만 포함하며,
+`application.yml`에서 datasource 자동 설정을 임시 제외합니다. Issue #2에서 DB 연결을 구성할 때 이 제외를 제거합니다.
+기본 사용자 자동 생성도 제외하며, 임시 보안 정책은 **GET `/api/health`만 허용하고 나머지 요청을 차단**합니다.
+실제 인증·권한 정책은 후속 Issue에서 구현합니다. 이 health 응답은 프로세스의 HTTP 응답 확인용이며 DB 연결 상태를 검사하지 않습니다.
+
 ## 개발 방식
 
 ```text
