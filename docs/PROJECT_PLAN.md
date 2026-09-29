@@ -100,7 +100,9 @@ Database: PostgreSQL
 Frontend: React, TypeScript  
 Infrastructure: Docker, Docker Compose, GitHub Actions
 
-## 12. 12주 방향
+## 12. 12주 일정 가이드
+
+> 아래 내용은 일정 가이드다. 기능 완료 여부와 전체 진행률은 [ROADMAP.md](ROADMAP.md)를 단일 기준으로 사용한다.
 1~2주: 요구사항/도메인/ERD, 개발환경  
 3~4주: Product/PricingPolicy  
 5~6주: DiscountRule  
