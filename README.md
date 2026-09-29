@@ -254,8 +254,11 @@ cd backend
 
 기본 HTTP 포트는 `8080`입니다. `application.yml`은 `DB_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`를 읽습니다.
 Issue #1의 datasource 자동 설정 제외를 제거했으므로 **실행과 통합 테스트 모두 PostgreSQL이 필요**합니다.
-Hibernate `ddl-auto: none`으로 테이블을 자동 생성·변경하지 않으며, 이번 단계에는 도메인 테이블이 없습니다.
-기본 사용자 생성 제외와 GET `/api/health`만 허용하는 임시 보안 정책은 Issue #12까지 유지합니다.
+Flyway가 `backend/src/main/resources/db/migration/V1__create_products.sql`로 Product 테이블을 생성합니다.
+Hibernate는 `ddl-auto: validate`로 매핑을 검증하며 스키마를 자동 변경하지 않습니다.
+이미 적용된 migration은 수정하지 않고 후속 변경 시 새 migration을 추가합니다.
+기본 사용자 생성은 계속 제외합니다. health, Product의 GET/POST/PUT, API 문서 GET만 임시 공개하며
+Product 요청에만 CSRF 검사를 제외합니다. Issue #12에서 STAFF / ADMIN 인증·권한 정책으로 교체합니다.
 
 ### 4. DB 연결 확인
 
@@ -312,7 +315,9 @@ macOS / Linux:
 ./gradlew test --rerun-tasks
 ```
 
-Context 로딩, health HTTP 200 및 `status: UP`, 다른 경로 HTTP 403, 실제 DB 연결의 4개 테스트를 실행합니다.
+기존 Context/health/경로 접근제어/DB 연결 테스트와 Product 서비스 단위·실제 HTTP/PostgreSQL 통합 테스트를 실행합니다.
+Product API 테스트는 테스트별 고유 코드로 데이터를 생성하고 해당 데이터만 삭제합니다.
+HTTP 요청은 서버의 별도 트랜잭션이므로 테스트 스레드의 rollback에 의존하지 않습니다.
 `--rerun-tasks`는 이전 성공 결과를 재사용하지 않고 현재 DB를 다시 검증합니다.
 결과는 `backend/build/reports/tests/test/index.html`에서 확인합니다.
 Jar 생성은 `./gradlew bootJar` (Windows: `.\gradlew.bat bootJar`)를 사용합니다.
@@ -330,6 +335,55 @@ named volume은 유지되므로 재시작하거나 `down` 후 `up -d`해도 DB �
 `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`는 **빈 볼륨을 최초 초기화할 때만** 적용됩니다.
 기존 볼륨이 있는 상태에서 `.env` 값만 변경해도 DB 사용자/비밀번호는 바뀌지 않습니다.
 기존 값을 유지하거나 DB에서 명시적으로 변경해야 하며, 연결 오류 해결을 위해 볼륨을 임의로 삭제하지 않습니다.
+
+## Product API (Issue #3)
+
+위 절차로 PostgreSQL과 Backend를 실행하면 아래 API를 사용할 수 있습니다.
+
+| Method | 경로 | 정상 응답 |
+| --- | --- | --- |
+| POST | `/api/products` | 201, Product 응답 및 Location 헤더 |
+| GET | `/api/products` | 200, id 오름차순 배열 (비활성 포함) |
+| GET | `/api/products/{id}` | 200, Product 응답 |
+| PUT | `/api/products/{id}` | 200, 변경된 Product 응답 |
+
+목록은 현재 MVP 규모에서 전체 조회하며 검색/페이지네이션은 아직 추가하지 않습니다.
+PUT은 수정 가능한 필드 전체를 교체하므로 name/category/active를 모두 보냅니다.
+description은 생략/null로 지울 수 있습니다. code 변경과 DELETE는 제공하지 않습니다.
+code 정규화·길이·카테고리·활성 정책은 [Product 도메인 정의](docs/DOMAIN.md#product)를 참고합니다.
+
+등록 예시 (Swagger UI의 Try it out에서도 사용 가능):
+
+```json
+{
+  "code": "DEMO_INTERNET_500M",
+  "name": "가상 인터넷 500M",
+  "category": "INTERNET",
+  "description": "프로젝트 시연용 가상 상품"
+}
+```
+
+수정/비활성화 예시:
+
+```json
+{
+  "name": "가상 인터넷 500M (판매 중단)",
+  "category": "INTERNET",
+  "description": null,
+  "active": false
+}
+```
+
+입력 오류(알 수 없는 필드/category 포함)는 400 `INVALID_REQUEST`, 없는 상품은 404 `PRODUCT_NOT_FOUND`,
+중복 코드는 409 `DUPLICATE_PRODUCT_CODE`이며 오류 응답은 `{ "code": "...", "message": "..." }`입니다.
+상품은 기본 active=true로 생성되며 생성 요청에 active를 지정할 수 없습니다.
+
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+[springdoc 공식 문서](https://springdoc.org/)의 Spring Boot 4 호환 3.x 계열인 3.1.1을 사용합니다.
+컨트롤러와 요청/응답 record에서 문서를 생성합니다.
+Flyway는 새 DB와 기존 개발 볼륨에 같은 Product 스키마를 적용하기 위해 최소 도입했습니다.
 
 ## 개발 방식
 

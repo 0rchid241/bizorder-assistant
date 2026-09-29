@@ -7,9 +7,12 @@ spring:
     password: ${POSTGRES_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     open-in-view: false
   autoconfigure:
     exclude:
       # 실제 인증은 Issue #12에서 구현한다. 임시 기본 사용자/비밀번호를 생성하지 않는다.
       - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
