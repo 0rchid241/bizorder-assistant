@@ -66,6 +66,8 @@
 
 ## M4. Early Frontend Vertical Slice — 10%
 
+관련 Issue: **#13**
+
 > 기존 계획보다 Frontend를 앞당긴다. 엔진이 동작하는 모습을 일찍 눈으로 확인하기 위한 마일스톤이다.
 
 - [ ] **3%** React + TypeScript 기본 구조와 Backend 연결
@@ -119,6 +121,8 @@
 
 ## M8. 포트폴리오 데모 완성 — 6%
 
+관련 Issue: **#18**
+
 - [ ] **1%** 가상 Product / PricingPolicy / DiscountRule Demo 데이터
 - [ ] **1%** 계산 근거를 포함한 UI 정리
 - [ ] **1%** OpenAPI / ERD / Architecture 최신화
@@ -131,6 +135,8 @@
 ---
 
 ## Stretch — 진행률 외
+
+관련 Issue: **#11**
 
 핵심 엔진 완성 후 여유가 있을 때만 진행한다.
 
@@ -181,7 +187,7 @@ STAFF
 - M2: **5 / 15**
 - M3~M8: **0**
 - 완료: Issue #1~#3
-- 다음 핵심 작업: Issue #4 PricingPolicy → Issue #5 유효 가격정책 선택
+- 다음 핵심 작업: **#4 PricingPolicy → #5 유효 가격정책 선택 → #6 Quote Engine v1 → #7 핵심 테스트 → #13 Early Frontend**
 
 > 프로젝트 방향은 재정의했지만 완료된 Spring/PostgreSQL/Product 기반은 새 구조에서도 그대로 필요하므로 진행률 21%를 유지한다.
 
