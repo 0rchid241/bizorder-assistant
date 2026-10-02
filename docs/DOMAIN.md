@@ -1,50 +1,175 @@
 # Domain Glossary
 
-개발 중 용어가 변경되면 코드와 문서를 함께 갱신한다.
+> 도메인 모델의 기준 문서. 구현이 확정된 내용과 아직 설계 예정인 내용을 구분한다.
 
-## Product
-판매 가능한 통신 상품. 실제 통신사의 내부 상품을 복제하지 않고 가상 상품을 사용한다.
+## 핵심 관계
 
-- `id`: PostgreSQL이 생성하는 내부 식별자(Long).
-- `code`: 앞뒤 공백 제거 후 `Locale.ROOT` 기준 대문자로 저장한다. 영문 대문자·숫자·밑줄 1~64자이며 대소문자를 구분하지 않고 중복을 거부한다. 생성 후 변경하지 않는다.
-- `name`: 앞뒤 공백을 제거한 필수 상품명, 1~100자.
-- `category`: `INTERNET`, `PHONE`, `WIFI`, `IPTV`, `SECURITY`, `ETC` enum. DB에는 문자열로 저장한다.
-- `description`: 선택 설명, 최대 2000자. 수정 시 생략 또는 null이면 설명을 지운다.
-- `active`: 신규 생성 시 true. false는 판매/견적 사용 중단을 의미하며 상품 자체는 보존한다. 이번 단계의 목록/단건 조회는 비활성 상품도 반환한다. 실제 견적 사용 가능 여부 검증은 후속 견적 기능에서 구현한다.
+```text
+Product
+  └─ PricingPolicy
 
-수정은 `PUT /api/products/{id}`로 name/category/description/active를 교체한다.
-name/category/active는 필수이며 code 등 정의되지 않은 요청 필드는 400으로 거부한다.
-과거 참조를 보존하기 위해 물리 DELETE API는 제공하지 않는다.
+QuoteRequest
+  └─ Product + 수량 + 약정 + 견적일 + 조건
+              ↓
+        PricingPolicy 선택
+              ↓
+        DiscountRule 평가
+              ↓
+          QuoteResult
+           ├─ QuoteItem
+           ├─ AppliedDiscount
+           └─ CalculationReason
+              ↓
+            확정
+              ↓
+           Snapshot
+```
 
-## PricingPolicy
-Product의 가격을 결정하는 정책. 월 이용료, 설치비, 약정기간, 유효기간 등을 가진다.
+## Product — 구현됨
 
-## DiscountRule
-조건을 만족할 때 적용되는 할인 규칙. 정액/정률, 유효기간, 중복 가능 여부, 우선순위 등을 가진다. 초기에는 기간 한정 프로모션도 이 모델로 표현한다.
+견적 가능한 가상 상품. 실제 통신사의 내부 상품을 복제하지 않는다.
 
-## QuoteRequest
-견적 계산에 필요한 입력조건. 고객 개인정보보다 상품·수량·약정 등 비식별 조건 중심으로 구성한다.
+- `id`: PostgreSQL 내부 식별자(Long)
+- `code`: 공백 제거 후 대문자 저장. `[A-Z0-9_]` 1~64자, unique, 생성 후 불변
+- `name`: 공백 제거 후 1~100자
+- `category`: `INTERNET`, `PHONE`, `WIFI`, `IPTV`, `SECURITY`, `ETC`
+- `description`: 선택, 최대 2000자
+- `active`: 신규 true. false면 새 견적에서 사용할 수 없는 상태
 
-## Quote
-계산된 견적의 aggregate root 후보. 초기 상태는 DRAFT / CONFIRMED를 고려한다.
+물리 DELETE를 제공하지 않는다. 과거 Quote/Snapshot이 참조할 수 있기 때문이다.
 
-## QuoteItem
-견적에 포함된 개별 상품 항목.
+## PricingPolicy — 다음 구현 대상
 
-## AppliedDiscount
-DiscountRule 자체와 구분되는 실제 할인 적용 결과.
+특정 Product의 가격을 **약정조건과 유효기간**에 따라 표현하는 정책.
 
-## Snapshot
-견적 확정 시점의 상품·가격·할인 결과를 복사해 보존한 데이터.
+필수로 표현해야 하는 개념:
 
-## RequiredItem
-공식 접수 전에 확인할 항목의 정의. 실제 개인정보나 문서 원본 저장 용도가 아니다.
+- 대상 Product
+- 월 이용료
+- 약정기간(contractMonths)
+- 적용 시작일(validFrom)
+- 적용 종료일(validTo 또는 open-ended 정책)
 
-## QuoteChecklist
-특정 견적의 RequiredItem 확인 상태.
+핵심 규칙:
 
-## User / Role
-시스템 사용자와 권한. 초기 역할은 STAFF / ADMIN.
+- 월 이용료는 음수가 될 수 없다.
+- 약정기간은 지원하는 양의 개월 수여야 한다.
+- 종료일이 있다면 시작일보다 빠를 수 없다.
+- 하나의 Product에는 여러 과거/현재/미래 정책이 존재할 수 있다.
+- 견적 시점에는 **견적일 + 약정기간**에 맞는 정책 하나를 결정론적으로 선택해야 한다.
+- 동일 조건에서 복수 정책이 동시에 유효해 선택이 모호해지는 경우를 어떻게 막거나 해결할지 Issue #5에서 명시한다.
 
-## AuditLog
-중요한 관리 데이터 변경 이력. MVP 핵심 기능 이후 도입을 검토한다.
+## QuoteRequest — 설계 예정
+
+견적 계산을 위한 비식별 입력.
+
+최소 후보:
+
+- quoteDate
+- productId
+- quantity
+- contractMonths
+- 할인 판별에 필요한 조건
+
+고객 이름, 전화번호, 주민등록번호 등은 핵심 계산에 필요하지 않으므로 저장하지 않는다.
+
+## QuoteResult / Quote — 설계 예정
+
+Quote Engine이 반환하는 계산 결과.
+
+최소한 다음을 설명할 수 있어야 한다.
+
+- 선택한 Product
+- 선택한 PricingPolicy
+- 수량
+- 기본 금액
+- 적용된 할인
+- 제외된 할인과 이유
+- 최종 금액
+- 계산 근거
+
+저장 전 계산 결과와 저장되는 Quote aggregate의 이름/경계는 Issue #6에서 최종 확정한다.
+
+## QuoteItem — 설계 예정
+
+견적 안의 상품별 계산 단위.
+
+MVP 초기에 단일 Product 견적으로 시작할 수 있지만, 이후 복수 상품을 지원할 수 있도록 계산 책임을 분리할지 Quote Engine 구현 시 결정한다.
+
+## DiscountRule — 설계 예정
+
+조건을 만족할 때 적용되는 데이터 기반 할인 규칙.
+
+표현 대상:
+
+- 할인 방식: 정액 / 정률
+- 할인 값
+- 적용 조건
+- 유효기간
+- 우선순위
+- 다른 할인과의 중복 가능 여부
+
+기간 한정 프로모션도 별도 Promotion 도메인을 만들기보다 초기에는 DiscountRule로 표현한다.
+
+## AppliedDiscount — 설계 예정
+
+DiscountRule 정의와 실제 견적에서의 적용 결과를 분리한다.
+
+예:
+
+- 어떤 Rule이 후보였는가
+- 실제 적용됐는가
+- 얼마가 할인됐는가
+- 제외됐다면 이유가 무엇인가
+
+## CalculationReason — 개념
+
+최종 견적의 설명 가능성을 위한 정보.
+
+별도 Entity가 될 필요는 없으며 DTO/value 형태일 수 있다.
+
+예:
+
+- “2026-10-02에 유효한 36개월 가격정책 선택”
+- “결합할인 조건 충족”
+- “신규가입 할인은 결합할인과 중복 불가하여 제외”
+
+핵심은 엔진이 최종 숫자만 반환하지 않는 것이다.
+
+## Snapshot — 설계 예정
+
+Quote 확정 시점의 계산 결과를 복사해 보존한 데이터.
+
+정책 원본의 ID만 다시 조회해 현재 상태로 재계산하지 않는다.
+
+Snapshot에 최소 보존할 후보:
+
+- 상품 code/name
+- 약정기간
+- 적용 가격
+- 적용 가격정책 식별 정보
+- 적용 할인명/금액
+- 기본 금액
+- 최종 금액
+- 확정 시각
+
+이후 정책이 수정·비활성화되어도 확정 견적 결과는 변하지 않아야 한다.
+
+## User / Role — 후반 구현
+
+최소 역할은 STAFF / ADMIN.
+
+- STAFF: 견적 계산 및 확정
+- ADMIN: Product / PricingPolicy / DiscountRule 관리
+
+인증은 프로젝트의 핵심 주제가 아니므로 견적 엔진보다 뒤에서 최소 범위로 구현한다.
+
+## RequiredItem / QuoteChecklist — Stretch
+
+공식 접수 전에 확인할 항목을 관리하는 보조 기능.
+
+초기 기획에서는 MVP였지만 2026-10 재정의에서 핵심 견적 엔진 밖으로 이동했다. 엔진·Frontend·Snapshot이 완성된 뒤 여유가 있을 때만 구현한다.
+
+## AuditLog — Stretch
+
+정책 변경 이력. 포트폴리오 핵심 시나리오 완료 후 필요성을 재검토한다.
